@@ -1,36 +1,51 @@
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
+void doCmd(char *cmd,char *output){
+
+}
+
+void process(char *input,char *last,char *cmd,char *output){
+
+}
+
 int main(){
-    char input[100];
-    char last[100];
-    int dolast = 0;
-    printf("Starting IC shell\n");
-    while(1){
-        printf("icsh $ <waiting for command>");
-        gets(input);
-        if(strcmp(input, "!!")==0){
-            dolast = 1;
-            strcpy(input,last);
-            printf("%s\n",input);
-        }else{
-            dolast = 0;
-            strcpy(last,input);
+    char input[255];
+    char last[255;
+    char cmd[10];
+    char output[255];
+    if(argc ==2){
+        FILE *file = fopen(argv[1], "r");
+        int tempChar;
+        unsigned int tempCharIdx = 0U;
+        while(tempChar = fgetc(file)){
+            if(tempChar = EOF){
+                input[tempCharIdx-1] = '\0';
+                process(input,last,cmd,output);
+                doCmd(cmd,output);
+                break;
+            }else if(tempChar == '\n'){
+                input[tempCharIdx-1] = '\0';
+                tempCharIdx = 0U;
+                process(input,last,cmd,output);
+                doCmd(cmd,output);
+                continue;
+            }else{
+                input[tempCharIdx++] = (char)tempChar;
+            }
         }
-        char cmd[10];
-        strncpy(cmd,input,5);
-        cmd[5] = '\0';
-        int len = strlen(input)-4;
-        char output[len];
-        strncpy(output,&input[5],len-1);
-        output[len-1] = '\0';
-        if(strcmp(cmd,"echo ")==0){
-            printf("%s\n",output);
-        }
-        if(strcmp(cmd,"exit")==0){
-            printf("bye\n");
-            exit(atoi(output));
+        fclose(file);
+    }else{
+        printf("Starting IC shell\n");
+        while(1){
+            printf("icsh $ <waiting for command>");
+            gets(input);
+            process(input,last,cmd,output);
+            doCmd(cmd,output);
         }
     }
 }
+    
+    
