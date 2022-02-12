@@ -2,16 +2,34 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+int pid;
+
+int prefix(const char *pre, const char *str){
+    return strncmp(pre,str,strlen(pre)) == 0;
+}
 
 void doCmd(char *cmd,char *output){
     if(strcmp(cmd,"echo ")==0){
         printf("%s\n",output);
     }else if(strcmp(cmd,"exit ")==0){
-        printf("exit program code\n");
+        printf("bye\n");
         printf("%d\n", atoi(output));
         exit(atoi(output));
     }else{
-        printf("bad command\n");
+        if((pid=fork())<0){
+            perror("Fork failed");
+            exit(0);
+        }
+        if(!pid){
+            system(cmd);
+            exit(0);
+        }
+        if(pid){
+            waitpid(pid,NULL,0);
+        }
     }
 }
 
@@ -22,11 +40,15 @@ void process(char *input,char *last,char *cmd,char *output){
     }else{
         strcpy(last,input);
     }
-    strncpy(cmd, input, 5);
-    cmd[5] = '\0';
-    int len = strlen(input)-4;
-    strncpy(output, &input[5], len-1);
-    output[len-1] = '\0';
+    if(prefix("echo",input)||prefix("exit",input)){
+        strncpy(cmd, input, 5);
+        cmd[5] = '\0';
+        int len = strlen(input)-4;
+        strncpy(output, &input[5], len-1);
+        output[len-1] = '\0';
+    }else{
+        strcpy(cmd,input);
+    }
 }
 
 int main(int argc,char *argv[]){
