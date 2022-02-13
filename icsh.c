@@ -4,32 +4,47 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <signal.h>
 
-int pid;
+int pid = -1;
+int ex = 0;
 
 int prefix(const char *pre, const char *str){
     return strncmp(pre,str,strlen(pre)) == 0;
 }
+void handler1(int signum){
+    if(pid>0)kill(pid,SIGTSTP);
+}
+
+void handler2(int signum){
+    if(pid>0)kill(pid,SIGINT);
+}
 
 void doCmd(char *cmd,char *output){
-    if(strcmp(cmd,"echo ")==0){
+    if(strcmp(cmd,"echo $?")==0){
         printf("%s\n",output);
+        ex = 0;
     }else if(strcmp(cmd,"exit ")==0){
         printf("bye\n");
         printf("%d\n", atoi(output));
+        ex = atoi(output);
         exit(atoi(output));
+    }else if(strcmp(cmd,"echo ")==0){
+        printf("%s\n",output);
+        ex = 0;
     }else{
         if((pid=fork())<0){
             perror("Fork failed");
             exit(0);
         }
         if(!pid){
-            system(cmd);
-            exit(0);
+            int ret = system(cmd);
+            exit(ret);
         }
         if(pid){
-            waitpid(pid,NULL,0);
+            waitpid(pid, &ex, WUNTRACED);
         }
+        ex = WEXITSTATUS(ex);
     }
 }
 
@@ -40,7 +55,9 @@ void process(char *input,char *last,char *cmd,char *output){
     }else{
         strcpy(last,input);
     }
-    if(prefix("echo",input)||prefix("exit",input)){
+    if(strcmp(input,"echo $?")==0){
+        strcpy(cmd,input);
+    }else if(prefix("echo",input)||prefix("exit",input)){
         strncpy(cmd, input, 5);
         cmd[5] = '\0';
         int len = strlen(input)-4;
@@ -79,11 +96,24 @@ int main(int argc,char *argv[]){
         fclose(file);
     }else{
         printf("Starting IC shell\n");
+        struct sigaction new_action1;
+        struct sigaction new_action2;
+
+        sigemptyset(&new_action1.sa_mask);
+        new_action1.sa_handler = handler1;
+        new_action2.sa_flags = 0;
+        sigaction(SIGTSTP, &new_action1, NULL);
+
+        sigemptyset(&new_action2.sa_mask);
+        new_action2.sa_handler = handler2;
+        new_action2.sa_flags = 0;
+        sigaction(SIGINT, &new_action2, NULL);
+
         while(1){
             printf("icsh $ <waiting for command> ");
             gets(input);
             process(input,last,cmd,output);
             doCmd(cmd,output);
-        }
+         }
     }
 }
