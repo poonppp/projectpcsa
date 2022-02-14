@@ -8,6 +8,8 @@
 
 int pid = -1;
 int ex = 0;
+int pid_arr[100];
+int job = 0;
 
 int prefix(const char *pre, const char *str){
     return strncmp(pre,str,strlen(pre)) == 0;
@@ -38,11 +40,18 @@ void doCmd(char *cmd,char *output){
             exit(0);
         }
         if(!pid){
-            int ret = system(cmd);
-            exit(ret);
+            system(cmd);
+            exit(0);
         }
         if(pid){
+            if(cmd[strlen(cmd)-1]=='&'){
+                job++;
+                pid_arr[job] = pid;
+                printf("[%d]%d\n",job,pid);
+            }
+            int status = 0;
             waitpid(pid, &ex, WUNTRACED);
+            ex = status;
         }
         ex = WEXITSTATUS(ex);
     }
